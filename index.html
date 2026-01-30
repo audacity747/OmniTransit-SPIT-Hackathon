@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniTransit | Mumbai's Smart Commute Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .pulse-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+      }
+    }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-x-hidden" x-data="pulseApp()">
+    <div id="root"></div> <!-- The React app will mount here -->
+
+    <script type="module">
+        import { GoogleGenAI } from "@google/genai";
+
+        window.pulseApp = () => ({
+            city: { name: 'Mumbai' },
+            source: 'Thane',
+            destination: 'Borivali',
+            activeTab: 'routes',
+            isSearching: false,
+            showAI: false,
+            user: { name: 'Aditya', coins: 1420, trustScore: 98 },
+            routes: {{ initial_routes|safe }},
+            messages: [{ role: 'assistant', content: 'Namaste! Ready to navigate Mumbai? I have hyper-local platform data for Dadar, CST, and more.' }],
+            aiInput: '',
+            isTyping: false,
+
+            init() { lucide.createIcons(); },
+
+            async sendAIQuery() {
+                if (!this.aiInput.trim() || this.isTyping) return;
+                const query = this.aiInput;
+                this.messages.push({ role: 'user', content: query });
+                this.aiInput = '';
+                this.isTyping = true;
+                
+                try {
+                    const ai = new GoogleGenAI({ apiKey: "{{ api_key }}" });
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-3-flash-preview',
+                        contents: query,
+                        config: {
+                            systemInstruction: `You are OmniTransit Mumbai AI. 
+                            Use Mumbai terminology: FOB, Slow/Fast Local, Platform, Ladies Coach.
+                            Station Layout Knowledge: 
+                            - Dadar: PF 1 (Slow North), PF 4 (Fast North), Central PF 1 (Slow South). 
+                            - CST: PF 1-2 (Harbour), PF 3-6 (Main Line). 
+                            - Churchgate: PF 4 is Marine Drive side.
+                            Focus on providing exact platform numbers and FOB directions.`,
+                            temperature: 0.6
+                        }
+                    });
+                    this.messages.push({ role: 'assistant', content: response.text });
+                } catch (e) {
+                    this.messages.push({ role: 'assistant', content: "Signal failure. Check platform indicators!" });
+                } finally {
+                    this.isTyping = false;
+                    this.$nextTick(() => { 
+                        const box = document.getElementById('chat-box');
+                        if (box) box.scrollTop = 9999; 
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

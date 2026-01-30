@@ -1,0 +1,8 @@
+
+{
+  "name": "OmniTransit",
+  "description": "Mumbai's ultimate multi-modal commute assistant with live tracking and smart interchanges.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
